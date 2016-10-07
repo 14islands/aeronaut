@@ -6,10 +6,12 @@ class Sea {
     // create the geometry (shape) of the cylinder
     // the parameters are:
     // radius top, radius bottom, height, number of segments on the radius, number of segments vertically
-    const geom = new THREE.CylinderGeometry(GROUND_DIAMETER, GROUND_DIAMETER, 2000, 60, 10)
+    // const geom = new THREE.CylinderGeometry(GROUND_DIAMETER, GROUND_DIAMETER, 2000, 60, 10)
+
+    const geom = new THREE.SphereGeometry(GROUND_DIAMETER, 50, 50)
 
     // rotate the geometry on the x axis
-    // geom.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2))
+    // geom.applyMatrix(new THREE.Matrix4().makeRotationY(-Math.PI / 2))
 
     // important: by merging vertices we ensure the continuity of the waves
     geom.mergeVertices()
@@ -78,7 +80,7 @@ class Sea {
     // unless we add this line
     this.mesh.geometry.verticesNeedUpdate = true
 
-    this.mesh.rotation.x += 0.005
+    // this.mesh.rotation.x += 0.005
   }
 }
 

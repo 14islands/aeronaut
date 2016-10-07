@@ -6,7 +6,7 @@ class AirPlane {
     this.mesh = new THREE.Object3D()
 
     // Create the cabin
-    var geomCockpitTail = new THREE.BoxGeometry(110, 40, 40, 1, 1, 1)
+    var geomCockpitTail = new THREE.BoxGeometry(130, 40, 40, 1, 1, 1)
     var matCockpitTail = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
 
     // we can access a specific vertex of a shape through
@@ -23,7 +23,7 @@ class AirPlane {
     var cockpitTail = new THREE.Mesh(geomCockpitTail, matCockpitTail)
     cockpitTail.castShadow = true
     cockpitTail.receiveShadow = true
-    cockpitTail.position.set(-65, 0, 0)
+    cockpitTail.position.set(-75, 0, 0)
     this.mesh.add(cockpitTail)
 
 
@@ -45,16 +45,16 @@ class AirPlane {
     this.mesh.add(engine)
 
     // Create top wing
-    var geomTopWing = new THREE.BoxGeometry(40, 4, 170, 1, 1, 1)
-    var matTopWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
+    var geomTopWing = new THREE.BoxGeometry(40, 2, 200, 1, 1, 1)
+    var matTopWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading, wireframe: true})
     var topWing = new THREE.Mesh(geomTopWing, matTopWing)
     topWing.castShadow = true
     topWing.receiveShadow = true
-    topWing.position.set(20, 40, 0)
+    topWing.position.set(20, 50, 0)
     this.mesh.add(topWing)
 
     // Create bottom wing
-    var geomBottomWing = new THREE.BoxGeometry(40, 4, 170, 1, 1, 1)
+    var geomBottomWing = new THREE.BoxGeometry(40, 2, 200, 1, 1, 1)
     var matBottomWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
     var bottomWing = new THREE.Mesh(geomBottomWing, matBottomWing)
     bottomWing.castShadow = true
@@ -63,35 +63,35 @@ class AirPlane {
     this.mesh.add(bottomWing)
 
     // Wing support 1
-    var geomWingSupport = new THREE.BoxGeometry(4, 50, 4, 1, 1, 1)
+    var geomWingSupport = new THREE.BoxGeometry(2, 60, 2, 1, 1, 1)
     var matWingSupport = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
     var wingSupportLeft = new THREE.Mesh(geomWingSupport, matWingSupport)
     wingSupportLeft.castShadow = true
     wingSupportLeft.receiveShadow = true
-    wingSupportLeft.position.set(15, 15, -70)
+    wingSupportLeft.position.set(15, 20, -80)
     this.mesh.add(wingSupportLeft)
     var wingSupportRight = new THREE.Mesh(geomWingSupport, matWingSupport)
     wingSupportRight.castShadow = true
     wingSupportRight.receiveShadow = true
-    wingSupportRight.position.set(15, 15, 70)
+    wingSupportRight.position.set(15, 20, 80)
     this.mesh.add(wingSupportRight)
 
     // Create the tail
-    var geomTailPlane = new THREE.BoxGeometry(30, 25, 4, 1, 1, 1)
+    var geomTailPlane = new THREE.BoxGeometry(30, 25, 2, 1, 1, 1)
     var matTailPlane = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
     var tailPlane = new THREE.Mesh(geomTailPlane, matTailPlane)
-    tailPlane.position.set(-105, 20, 0)
+    tailPlane.position.set(-115, 20, 0)
     tailPlane.castShadow = true
     tailPlane.receiveShadow = true
     this.mesh.add(tailPlane)
 
     // Create the tail wing
-    var geomTailWing = new THREE.BoxGeometry(30, 4, 60, 1, 1, 1)
+    var geomTailWing = new THREE.BoxGeometry(20, 2, 60, 1, 1, 1)
     var matTailWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
     var tailWing = new THREE.Mesh(geomTailWing, matTailWing)
     tailWing.castShadow = true
     tailWing.receiveShadow = true
-    tailWing.position.set(-100, 11, 0)
+    tailWing.position.set(-110, 11, 0)
     this.mesh.add(tailWing)
 
 
