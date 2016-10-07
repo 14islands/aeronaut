@@ -1,6 +1,5 @@
 node_modules
 src/jspm_packages
-src/css
 test
 dist
 *.log
