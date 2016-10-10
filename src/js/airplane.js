@@ -46,7 +46,7 @@ class AirPlane {
 
     // Create top wing
     var geomTopWing = new THREE.BoxGeometry(40, 2, 200, 1, 1, 1)
-    var matTopWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading, wireframe: true})
+    var matTopWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading})
     var topWing = new THREE.Mesh(geomTopWing, matTopWing)
     topWing.castShadow = true
     topWing.receiveShadow = true

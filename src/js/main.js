@@ -10,22 +10,22 @@ import _VRControls from 'VRControls'
 import _VREffect from 'VREffect'
 import _ViveController from 'ViveController'
 
-import WebVRManager from 'webvr-boilerplate'
+import WebVRManager, {Modes} from 'webvr-boilerplate'
 
 let scene,
   camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
   renderer, container, sea, element, controls, vrcontrols, sky, airplane, effect, manager, dollyCam, viveController, world
 
+let turnSpeed = 0
 let planeDirection = 0
 
 let mouseDragging = false
 
-const CAMERA_INSIDE_COCKPIT = false
-
 const clock = new THREE.Clock()
 
-const planeStartZ = 400
-const cameraStartZ = 500
+const planeStartY = 200
+const planeStartZ = 0
+const cameraStartZ = 100
 
 const GROUND_DIAMETER = 2000
 
@@ -41,7 +41,7 @@ function createScene () {
 
   // Add a fog effect to the scene same color as the
   // background color used in the style sheet
-  scene.fog = new THREE.Fog(0xc6cceb, 100, 950)
+  scene.fog = new THREE.Fog(0xc6cceb, 100, 1950)
   // scene.fog = new THREE.Fog(0xaae8f7, 100, 950)
 
   // Create the camera
@@ -169,7 +169,7 @@ function createSky () {
 function createPlane () {
   airplane = new AirPlane()
   airplane.mesh.scale.set(0.25, 0.25, 0.25)
-  airplane.mesh.position.y = GROUND_DIAMETER + 200
+  airplane.mesh.position.y = GROUND_DIAMETER + planeStartY
   airplane.mesh.position.z = planeStartZ
   scene.add(airplane.mesh)
 }
@@ -204,23 +204,37 @@ function loop (t) {
   // update the plane on each frame
   updatePlane()
 
-  // move the clouds
-  // sky.mesh.rotation.x += 0.002
-
   // move waves
   sea.moveWaves()
 
-  world.rotation.y = planeDirection
-  world.rotation.x += 0.002
+  // Rotate world around Y axis - in direction (heading) we are flying
+  const worldHeadingMatrix = new THREE.Matrix4()
+  worldHeadingMatrix.makeRotationAxis(new THREE.Vector3(0, 1, 0), turnSpeed)
+
+  // World speed rotation matrix
+  const worldSpeedMatrix = new THREE.Matrix4()
+  worldSpeedMatrix.makeRotationAxis(new THREE.Vector3(1, 0, 0), 0.002)
+
+  // apply rotation matrixes to current world roation and update
+  const newWorldMatrix = new THREE.Matrix4()
+  newWorldMatrix.multiply(worldHeadingMatrix)
+  newWorldMatrix.multiply(worldSpeedMatrix)
+  newWorldMatrix.multiply(world.matrix)
+  world.matrix = newWorldMatrix
+  world.rotation.setFromRotationMatrix(world.matrix)
 
   // position camera inside cockpit
-  const {x, y, z} = airplane.mesh.position
-  dollyCam.position.x = x
-  dollyCam.position.y = y + 10
-  if (CAMERA_INSIDE_COCKPIT) {
-    dollyCam.position.z = z + 5
+  // focus camera on airplane if not in VR mode
+  if (manager.mode === Modes.NORMAL || manager.mode === Modes.UNKNOWN) {
+    // camera position is set by controller handler
+    dollyCam.lookAt(airplane.mesh.position)
+  // Cardboard or VR mode
   } else {
-    dollyCam.position.z = cameraStartZ
+    const {x, y, z} = airplane.mesh.position
+    dollyCam.position.x = x
+    dollyCam.lookAt(dollyCam.position)
+    dollyCam.position.y = y + 10
+    dollyCam.position.z = z + 5
   }
 
   // render the scene
@@ -242,15 +256,26 @@ function updatePlane () {
   if (mouseDragging) return
 
   var targetY = normalize(mousePos.y, -0.75, 0.75, GROUND_DIAMETER + 15, GROUND_DIAMETER + 800) // 25 must be higher than waves
-  var targetX = normalize(mousePos.x, -0.75, 0.75, -800, 800)
+  // var targetX = normalize(mousePos.x, -0.75, 0.75, -800, 800)
 
   // Move the plane at each frame by adding a fraction of the remaining distance
   airplane.mesh.position.y += (targetY - airplane.mesh.position.y) * 0.05
   // airplane.mesh.position.x += (targetX - airplane.mesh.position.x) * 0.05
 
+  // Rotate the plane proportionally to the remaining distance
+  // tilt up/down
+  const tiltAngle = (targetY - airplane.mesh.position.y) * 0.0016
+  airplane.mesh.rotation.x = Math.min(Math.PI / 8, Math.max(-Math.PI / 8, tiltAngle))
+  // roll
+  var rollAngle = normalize(mousePos.x, -0.75, 0.75, Math.PI / 4, -Math.PI / 4)
+  airplane.mesh.rotation.z = (rollAngle + airplane.mesh.rotation.z) * 0.5
+
+  // var turnAngle = normalize(mousePos.x, -0.75, 0.75, -Math.PI / 8, Math.PI / 8)
+  // airplane.mesh.rotation.y = (turnAngle - airplane.mesh.rotation.y) * .2
+
   // Move camera to follow plane
-  var cameraY = normalize(mousePos.y, -0.75, 0.75, GROUND_DIAMETER + 50, GROUND_DIAMETER + 275)
-  var cameraX = normalize(mousePos.x, -0.75, 0.75, -825, 825)
+  var cameraY = normalize(mousePos.y, -0.75, 0.75, GROUND_DIAMETER + 40, GROUND_DIAMETER + 900)
+  // var cameraX = normalize(mousePos.x, -0.75, 0.75, -100, 100)
 
   // zoom out at edges of map
   // var cameraZ = normalize(Math.abs(mousePos.x), 0, 0.75, cameraStartZ, cameraStartZ + 100)
@@ -259,26 +284,18 @@ function updatePlane () {
   // zoom in close to water - zoom out high up in air
   var cameraZ = normalize(mousePos.y, -0.75, 0.75, cameraStartZ - cameraZoom, cameraStartZ + 100)
 
-  // if (mousePos.isInteractive) {
-  //   camera.position.y += (cameraY - camera.position.y) * 0.1
-  //   camera.position.x += (cameraX - camera.position.x) * 0.1
-  //   camera.position.z += (cameraZ - camera.position.z) * 0.1
-  // }
+  if (mousePos.isInteractive) {
+    dollyCam.position.y += (cameraY - dollyCam.position.y) * 0.05
+    // dollyCam.position.x = (cameraX - airplane.mesh.position.x) * 0.25
+    dollyCam.position.z += (cameraZ - dollyCam.position.z) * 0.1
+  }
 
-  // Rotate the plane proportionally to the remaining distance
-  // tilt up/down
-  const tiltAngle = (targetY - airplane.mesh.position.y) * 0.0016
-  airplane.mesh.rotation.x = Math.min(Math.PI / 8, Math.max(-Math.PI / 8, tiltAngle))
-  // roll
-  const rollAngle = (airplane.mesh.position.x - targetX) * 0.0032
-  airplane.mesh.rotation.z = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, rollAngle))
 
-  // const rotation = normalize(mousePos.x, -0.75, 0.75, -Math.PI/2, Math.PI/2)
-  // console.log(rollAngle)
-  planeDirection -= rollAngle * 0.01
-  // airplane.mesh.rotation.y = Math.PI/2 + rollAngle * -0.01
+  // current compass heading
+  planeDirection -= rollAngle * 0.02
 
-  // console.log(planeDirection)
+  // how fast are we changing compass heading
+  turnSpeed = rollAngle * -0.02
 }
 
 function normalize (v, vmin, vmax, tmin, tmax) {
@@ -352,7 +369,8 @@ function init () {
   // to a simple Object3D, since that's what
   // OrbitControls expects.
   dollyCam = new THREE.PerspectiveCamera();
-  // controls = new (OrbitControls(THREE))(dollyCam, element);
+  dollyCam.position.y = GROUND_DIAMETER + planeStartY + 50
+  dollyCam.position.z = cameraStartZ
   dollyCam.add(camera);
   scene.add(dollyCam);
 

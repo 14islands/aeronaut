@@ -44,7 +44,8 @@ class Sea {
       color: Colors.blue,
       transparent: true,
       opacity: 1,
-      shading: THREE.FlatShading
+      shading: THREE.FlatShading,
+      wireframe: false
     })
 
     // To create an object in Three.js, we have to create a mesh
@@ -79,8 +80,6 @@ class Sea {
     // three.js caches the geometries and ignores any changes
     // unless we add this line
     this.mesh.geometry.verticesNeedUpdate = true
-
-    // this.mesh.rotation.x += 0.005
   }
 }
 
