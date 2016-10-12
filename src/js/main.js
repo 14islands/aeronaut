@@ -5,22 +5,27 @@ import Sky from './sky'
 import AirPlane from './airplane'
 import Sea from './sea'
 
-// window.THREE = THREE
-// console.log('w', window.THREE)
-// import DeviceOrientationControls from 'device-orientation-controls'
+// load shimmed plugins - access on THREE namespace
+import _VRControls from 'VRControls'
+import _VREffect from 'VREffect'
+import _ViveController from 'ViveController'
+
+import WebVRManager, {Modes} from 'webvr-boilerplate'
 
 let scene,
   camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-  renderer, container, sea, element, controls, sky, airplane
+  renderer, container, sea, element, controls, vrcontrols, sky, airplane, effect, manager, dollyCam, viveController, world
+
+let turnSpeed = 0
+let planeDirection = 0
 
 let mouseDragging = false
 
 const clock = new THREE.Clock()
 
-const planeStartZ = 200
-
-const cameraStartY = 250
-const cameraStartZ = 300
+const planeStartY = 200
+const planeStartZ = 0
+const cameraStartZ = 100
 
 const GROUND_DIAMETER = 2000
 
@@ -36,7 +41,7 @@ function createScene () {
 
   // Add a fog effect to the scene same color as the
   // background color used in the style sheet
-  scene.fog = new THREE.Fog(0xc6cceb, 100, 950)
+  scene.fog = new THREE.Fog(0xc6cceb, 100, 1950)
   // scene.fog = new THREE.Fog(0xaae8f7, 100, 950)
 
   // Create the camera
@@ -52,9 +57,9 @@ function createScene () {
   )
 
   // Set the position of the camera
-  camera.position.x = 0
-  camera.position.z = cameraStartZ
-  camera.position.y = cameraStartY
+  // camera.position.x = 0
+  // camera.position.z = cameraStartZ
+  // camera.position.y = cameraStartY
   // TEST camera behind plane
   // camera.position.x = -500
   // camera.position.z = 0
@@ -84,6 +89,7 @@ function createScene () {
   container.appendChild(renderer.domElement)
   element = renderer.domElement
 
+
   // Listen to the screen: if the user resizes it
   // we have to update the camera and the renderer size
   window.addEventListener('resize', handleWindowResize, false)
@@ -93,6 +99,7 @@ function handleWindowResize () {
   // update height and width of the renderer and the camera
   HEIGHT = window.innerHeight
   WIDTH = window.innerWidth
+  effect.setSize(WIDTH, HEIGHT)
   renderer.setSize(WIDTH, HEIGHT)
   camera.aspect = WIDTH / HEIGHT
   camera.updateProjectionMatrix()
@@ -146,33 +153,53 @@ function createSea () {
   sea = new Sea(GROUND_DIAMETER)
 
   // push it a little bit at the bottom of the scene
-  sea.mesh.position.y = -GROUND_DIAMETER
+  // sea.mesh.position.y = -GROUND_DIAMETER
   sea.mesh.rotation.z = Math.PI / 2
 
   // add the mesh of the sea to the scene
-  scene.add(sea.mesh)
+  return sea
 }
 
 function createSky () {
   sky = new Sky(GROUND_DIAMETER)
-  sky.mesh.position.y = -GROUND_DIAMETER
-  scene.add(sky.mesh)
+  // sky.mesh.position.y = -GROUND_DIAMETER
+  return sky
 }
 
 function createPlane () {
   airplane = new AirPlane()
   airplane.mesh.scale.set(0.25, 0.25, 0.25)
+  airplane.mesh.position.y = GROUND_DIAMETER + planeStartY
   airplane.mesh.position.z = planeStartZ
   scene.add(airplane.mesh)
 }
 
+function updateController(controller, id) {
+  controller.update();
+  if (controller.visible) {
+    // here we are converting the Vive controller position
+    // to a normalized value varying between -1 and 1;
+    // var tx = controller.rotation.z
+    // var ty = controller.rotation.x
+    var tx = controller.position.x / 0.5
+    var ty = controller.position.y / 0.5
+    mousePos = {x: tx, y: ty, isInteractive: true}
+  }
+}
+
 function loop (t) {
+
+  if (viveController) {
+    // UPDATE CONTROLLER
+    updateController(viveController, 0)
+  }
+
   if (controls) {
     controls.update(clock.getDelta())
   }
-
-  // Rotate the propeller, the sea and the sky
-  sky.mesh.rotation.x += 0.002
+  if (vrcontrols) {
+    vrcontrols.update(clock.getDelta())
+  }
 
   // update the plane on each frame
   updatePlane()
@@ -180,53 +207,92 @@ function loop (t) {
   // move waves
   sea.moveWaves()
 
+  // Rotate world around Y axis - in direction (heading) we are flying
+  const worldHeadingMatrix = new THREE.Matrix4()
+  worldHeadingMatrix.makeRotationAxis(new THREE.Vector3(0, 1, 0), turnSpeed)
+
+  // World speed rotation matrix
+  const worldSpeedMatrix = new THREE.Matrix4()
+  worldSpeedMatrix.makeRotationAxis(new THREE.Vector3(1, 0, 0), 0.002)
+
+  // apply rotation matrixes to current world roation and update
+  const newWorldMatrix = new THREE.Matrix4()
+  newWorldMatrix.multiply(worldHeadingMatrix)
+  newWorldMatrix.multiply(worldSpeedMatrix)
+  newWorldMatrix.multiply(world.matrix)
+  world.matrix = newWorldMatrix
+  world.rotation.setFromRotationMatrix(world.matrix)
+
+  // position camera inside cockpit
+  // focus camera on airplane if not in VR mode
+  if (manager.mode === Modes.NORMAL || manager.mode === Modes.UNKNOWN) {
+    // camera position is set by controller handler
+    dollyCam.lookAt(airplane.mesh.position)
+  // Cardboard or VR mode
+  } else {
+    const {x, y, z} = airplane.mesh.position
+    dollyCam.position.x = x
+    dollyCam.lookAt(dollyCam.position)
+    dollyCam.position.y = y + 10
+    dollyCam.position.z = z + 5
+  }
+
   // render the scene
-  renderer.render(scene, camera)
+  // renderer.render(scene, camera)
+
+  // Render the scene through the manager.
+  manager.render(scene, camera, t)
+
+
   // call the loop function again
   window.requestAnimationFrame(loop)
 }
 
 function updatePlane () {
+  const planeAcceleration = 0.025
+  const cameraSpeed = 0.02 // move camera slower than altitude so we see plane dive
 
   // rotate propeller
   airplane.propeller.rotation.x += 0.3
 
+  // abort flying controll if dragging camera
   if (mouseDragging) return
 
-  var targetY = normalize(mousePos.y, -0.75, 0.75, 25, 300) // 25 must be higher than waves
-  var targetX = normalize(mousePos.x, -0.75, 0.75, -800, 800)
+  const MAX_PITCH = Math.PI / 2
+  const MIN_HEIGHT = GROUND_DIAMETER + 20
+  const MAX_HEIGHT = GROUND_DIAMETER + 800
+  const MAX_DELTA = MAX_HEIGHT - MIN_HEIGHT
 
-  // Move the plane at each frame by adding a fraction of the remaining distance
-  airplane.mesh.position.y += (targetY - airplane.mesh.position.y) * 0.1
-  airplane.mesh.position.x += (targetX - airplane.mesh.position.x) * 0.1
+  // Modify the plane altitude at each frame by adding a fraction of the remaining distance
+  const targetY = normalize(mousePos.y, -0.75, 0.75, MIN_HEIGHT, MAX_HEIGHT) // MIN_HEIGHT should be higher than waves
+  const yDelta = targetY - airplane.mesh.position.y
+  airplane.mesh.position.y += yDelta * planeAcceleration
+
+  // Pitch the plane proportionally to the remaining distance
+  const pitchAngle = MAX_PITCH * normalize(yDelta, -MAX_DELTA / 2, MAX_DELTA / 2, -1, 1)
+  airplane.mesh.rotation.x += (pitchAngle - airplane.mesh.rotation.x) * 0.05
+
+  // Roll towards target
+  const rollAngle = normalize(mousePos.x, -0.75, 0.75, Math.PI / 4, -Math.PI / 4)
+  airplane.mesh.rotation.z = (rollAngle + airplane.mesh.rotation.z) * 0.5
 
   // Move camera to follow plane
-  var cameraY = normalize(mousePos.y, -0.75, 0.75, 50, 275)
-  var cameraX = normalize(mousePos.x, -0.75, 0.75, -825, 825)
+  const cameraY = normalize(mousePos.y, -0.75, 0.75, GROUND_DIAMETER + 40, GROUND_DIAMETER + 850)
 
-  // zoom out at edges of map
-  // var cameraZ = normalize(Math.abs(mousePos.x), 0, 0.75, cameraStartZ, cameraStartZ + 100)
-  // var cameraZoom = normalize(Math.abs(mousePos.x), 0, 0.75, 50, 60)
-  var cameraZoom = 50
   // zoom in close to water - zoom out high up in air
-  var cameraZ = normalize(mousePos.y, -0.75, 0.75, cameraStartZ - cameraZoom, cameraStartZ + 100)
+  const cameraZoom = 50
+  const cameraZ = normalize(mousePos.y, -0.75, 0.75, cameraStartZ - cameraZoom, cameraStartZ + cameraZoom)
 
   if (mousePos.isInteractive) {
-    camera.position.y += (cameraY - camera.position.y) * 0.1
-    camera.position.x += (cameraX - camera.position.x) * 0.1
-    camera.position.z += (cameraZ - camera.position.z) * 0.1
+    dollyCam.position.y += (cameraY - dollyCam.position.y) * cameraSpeed
+    dollyCam.position.z += (cameraZ - dollyCam.position.z) * cameraSpeed
   }
 
-  // Rotate the plane proportionally to the remaining distance
-  // tilt up/down
-  airplane.mesh.rotation.x = (targetY - airplane.mesh.position.y) * 0.0128
-  // roll
-  const rollAngle = (airplane.mesh.position.x - targetX) * 0.0032
-  airplane.mesh.rotation.z = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, rollAngle))
+  // how fast are we changing compass heading
+  turnSpeed = rollAngle * planeAcceleration * -1
 
-  // move controlled camera object
-  const {x, y, z} = airplane.mesh.position
-  controls.target.set(x, y, z)
+  // current compass heading
+  planeDirection += turnSpeed
 }
 
 function normalize (v, vmin, vmax, tmin, tmax) {
@@ -274,37 +340,43 @@ function init () {
   createSea()
   createSky()
 
- function fullscreen() {
-    alert('fullscreen')
-    if (container.requestFullscreen) {
-      container.requestFullscreen();
-    } else if (container.msRequestFullscreen) {
-      container.msRequestFullscreen();
-    } else if (container.mozRequestFullScreen) {
-      container.mozRequestFullScreen();
-    } else if (container.webkitRequestFullscreen) {
-      container.webkitRequestFullscreen();
-    }
+  // world
+  world = new THREE.Object3D()
+  world.add(sky.mesh)
+  world.add(sea.mesh)
+  scene.add(world)
+
+  // // Apply VR headset positional data to camera.
+  vrcontrols = new THREE.VRControls(camera)
+  // vrcontrols.standing = true
+  // vrcontrols.userHeight = 172
+
+  // Apply VR stereo rendering to renderer.
+  effect = new THREE.VREffect(renderer)
+  effect.setSize(window.innerWidth, window.innerHeight)
+
+  // Create a VR manager helper to enter and exit VR mode.
+  var params = {
+    hideButton: false, // Default: false.
+    isUndistorted: false // Default: false.
   }
+  manager = new WebVRManager(renderer, effect, params)
 
-  controls = new (OrbitControls(THREE))(camera, element)
-  const {x, y, z} = airplane.mesh.position
-  controls.target.set(x, y, z)
+  // The dolly has to be a PerspectiveCamera, as opposed
+  // to a simple Object3D, since that's what
+  // OrbitControls expects.
+  dollyCam = new THREE.PerspectiveCamera();
+  dollyCam.position.y = GROUND_DIAMETER + planeStartY * 2
+  dollyCam.position.z = cameraStartZ
+  dollyCam.add(camera);
+  scene.add(dollyCam);
 
-  // function setOrientationControls(e) {
-  //   if (!e.alpha) {
-  //     return;
-  //   }
-  //   controls = new THREE.DeviceOrientationControls(camera, true);
-  //   controls.connect();
-  //   controls.update();
-  //   element.addEventListener('click', fullscreen, false);
-  //   window.removeEventListener('deviceorientation', setOrientationControls, true);
-  //   alert(element)
-  // }
-  // window.addEventListener('deviceorientation', setOrientationControls, true);
-
-
+  // VIVE CONTROLLER
+  if (navigator.getGamepads) {
+    viveController = new THREE.ViveController( 0 );
+    viveController.standingMatrix = vrcontrols.getStandingMatrix();
+    scene.add( viveController );
+  }
   // start a loop that will update the objects' positions
   // and render the scene on each frame
   loop()

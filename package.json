@@ -8,7 +8,7 @@
     "modernizr": "modernizr -c modernizr-config.json -d build/ -u",
     "browser-sync": "browser-sync start --server --logLevel info --files 'build/**/*' '**/*.html' --port 3030",
     "build:css-prod": "stylus --include-css -c -u autoprefixer-stylus src/css/main.styl -o build/bundle.min.css",
-    "build:js-prod": "browserify src/js/main.js -t babelify -g browserify-shim -g uglifyify --exclude jquery | uglifyjs -c > build/bundle.min.js",
+    "build:js-prod": "browserify src/js/main.js -t babelify -g uglifyify | uglifyjs -c > build/bundle.min.js",
     "build:svg": "cp -R src/svg build/ && find build/svg -name '*.svg' -type f -exec svgo {} --disable=cleanupIDs \\;",
     "build": "npm run build:css-prod -s && npm run build:js-prod -s && npm run build:svg -s",
     "watch:js": "watchify src/js/main.js -d -t babelify -o build/bundle.min.js",
@@ -37,37 +37,32 @@
     "device-orientation-controls": "^1.1.0",
     "eventemitter3": "^1.2.0",
     "exorcist": "^0.4.0",
-    "express": "4.13.4",
-    "gsap": "^1.18.5",
     "normalize-styl": "3.0.3",
     "npm-run-all": "^1.7.0",
     "onchange": "^2.2.0",
     "serve-static": "1.10.2",
     "stylus": "^0.54.2",
-    "svgo": "^0.6.6",
     "three": "^0.81.2",
     "three-orbit-controls": "^72.0.0",
     "uglifyify": "^3.0.1",
     "uglifyjs": "^2.4.10",
     "watch": "^0.17.1",
     "watchify": "^3.7.0",
-    "webfontloader": "^1.6.24"
+    "webfontloader": "^1.6.24",
+    "webvr-boilerplate": "^0.4.9",
+    "webvr-polyfill": "^0.9.20"
   },
   "browser": {
-    "TweenMax": "./node_modules/gsap/src/uncompressed/TweenMax.js",
-    "TimelineLite": "./node_modules/gsap/src/uncompressed/TimelineLite.js",
-    "ScrollToPlugin": "./node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js",
-    "CSSPlugin": "./node_modules/gsap/src/uncompressed/plugins/CSSPlugin.js",
-    "AttrPlugin": "./node_modules/gsap/src/uncompressed/plugins/AttrPlugin.js",
-    "ColorPropsPlugin": "./node_modules/gsap/src/uncompressed/plugins/ColorPropsPlugin.js",
-    "EasePack": "./node_modules/gsap/src/uncompressed/easing/EasePack.js",
-    "THREE": "./node_modules/three/src/Three.js"
+    "VRControls": "./node_modules/three/examples/js/controls/VRControls.js",
+    "VREffect": "./node_modules/three/examples/js/effects/VREffect.js",
+    "ViveController": "./node_modules/three/examples/js/ViveController.js"
   },
   "browserify": {
-    "transform": [ "browserify-shim" ]
+    "transform": [
+      "browserify-shim"
+    ]
   },
-
   "browserify-shim": {
-      "THREE": "global:THREE"
+    "three": "global:THREE"
   }
 }
