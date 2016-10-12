@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import OrbitControls from 'three-orbit-controls'
 import Colors from './colors'
 import Sky from './sky'
 import AirPlane from './airplane'
