@@ -1,12 +1,9 @@
 const Colors = {
-  // red: 0xf25346,
-  red: 0xb7d02e,
+  airplane: 0xb7d02e,
   white: 0xd8d0d1,
   brown: 0x59332e,
-  pink: 0xF5986E,
   brownDark: 0x23190f,
-  // blue: 0x68c3c0
-  blue: 0x006457
+  water: 0x006457
 }
 
 export default Colors
