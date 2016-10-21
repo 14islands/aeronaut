@@ -7,7 +7,7 @@ class Sky {
     this.mesh = new THREE.Object3D()
 
     // choose a number of clouds to be scattered in the sky
-    this.nClouds = 100
+    this.nClouds = 200
 
     // To distribute the clouds consistently,
     // we need to place them according to a uniform angle
@@ -17,23 +17,38 @@ class Sky {
     for (let i = 0; i < this.nClouds; i++) {
       const c = new Cloud()
 
-      // set the rotation and the position of each cloud
-      // for that we use a bit of trigonometry
-      const a = stepAngle * i // this is the final angle of the cloud
-      const h = GROUND_DIAMETER + 150 + Math.random() * 300 // this is the distance between the center of the axis and the cloud itself
+      // Get random altitude of cloud - radius is the distance from the center of the world
+      const radius = GROUND_DIAMETER + 150 + Math.random() * 300
 
-      // Trigonometry!!! I hope you remember what you've learned in Math :)
-      // in case you don't:
-      // we are simply converting polar coordinates (angle, distance) into Cartesian coordinates (x, y)
-      c.mesh.position.y = Math.sin(a) * h
-      c.mesh.position.z = Math.cos(a) * h
+      // Step through the Polar angle Theta around X-axis to spread clouds evenly
+      const theta = stepAngle * i
 
-      // rotate the cloud according to its position
-      c.mesh.rotation.x = a + Math.PI / 2
+      // Random azimuthal angle Phi around Z-axis to spread clouds across all of the sphere
+      const phi = Math.random() * Math.PI * 2
 
-      // for a better result, we position the clouds
-      // at random depths inside of the scene
-      c.mesh.position.x = -1000 + Math.random() * 2000
+      // generate random angle of cloud facing airplane
+      const rotY = Math.random() * Math.PI * 2
+
+      // Rotate and translate to desired height above sphere surface
+      const cloudMatrix = c.mesh.matrix.clone()
+
+      const rotateMatrixX = new THREE.Matrix4()
+      rotateMatrixX.makeRotationX(theta)
+
+      const rotateMatrixZ = new THREE.Matrix4()
+      rotateMatrixZ.makeRotationZ(phi)
+
+      const rotateMatrixY = new THREE.Matrix4()
+      rotateMatrixY.makeRotationY(rotY)
+
+      const translateMatrix = new THREE.Matrix4()
+      translateMatrix.makeTranslation(0, radius, 0)
+
+      cloudMatrix.multiply(rotateMatrixX)
+      cloudMatrix.multiply(rotateMatrixZ)
+      cloudMatrix.multiply(translateMatrix)
+      cloudMatrix.multiply(rotateMatrixY)
+      c.mesh.applyMatrix(cloudMatrix)
 
       // we also set a random scale for each cloud
       const s = 1 + Math.random() * 2

@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import Colors from './colors'
 import Sky from './sky'
 import AirPlane from './airplane'
 import Sea from './sea'
@@ -13,10 +12,10 @@ import WebVRManager, {Modes} from 'webvr-boilerplate'
 
 let scene,
   camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-  renderer, container, sea, element, controls, vrcontrols, sky, airplane, effect, manager, dollyCam, viveController, world
+  renderer, container, sea, controls, vrcontrols, sky, airplane, effect, manager, dollyCam, viveController, world
 
 let turnSpeed = 0
-let planeDirection = 0
+let compassHeading = 0
 
 let mouseDragging = false
 
@@ -38,10 +37,8 @@ function createScene () {
   // Create the scene
   scene = new THREE.Scene()
 
-  // Add a fog effect to the scene same color as the
-  // background color used in the style sheet
-  scene.fog = new THREE.Fog(0xc6cceb, 100, 1950)
-  // scene.fog = new THREE.Fog(0xaae8f7, 100, 950)
+  // Add a fog effect to the scene using similar color as background
+  scene.fog = new THREE.Fog(0xc6cceb, 200, GROUND_DIAMETER / 2)
 
   // Create the camera
   aspectRatio = WIDTH / HEIGHT
@@ -54,16 +51,6 @@ function createScene () {
     nearPlane,
     farPlane
   )
-
-  // Set the position of the camera
-  // camera.position.x = 0
-  // camera.position.z = cameraStartZ
-  // camera.position.y = cameraStartY
-  // TEST camera behind plane
-  // camera.position.x = -500
-  // camera.position.z = 0
-  // camera.position.y = 100
-  // camera.rotation.y = -Math.PI / 2
 
   // Create the renderer
   renderer = new THREE.WebGLRenderer({
@@ -86,8 +73,6 @@ function createScene () {
   // container we created in the HTML
   container = document.getElementById('world')
   container.appendChild(renderer.domElement)
-  element = renderer.domElement
-
 
   // Listen to the screen: if the user resizes it
   // we have to update the camera and the renderer size
@@ -110,14 +95,14 @@ function createLights () {
   // A hemisphere light is a gradient colored light
   // the first parameter is the sky color, the second parameter is the ground color,
   // the third parameter is the intensity of the light
-  hemisphereLight = new THREE.HemisphereLight(0xd8bae4, 0xaae8f7, 0.5)
+  hemisphereLight = new THREE.HemisphereLight(0xe8caf4, 0xbbe8f7, 0.5)
 
   // A directional light shines from a specific direction.
   // It acts like the sun, that means that all the rays produced are parallel.
-  shadowLight = new THREE.DirectionalLight(0xffffff, 0.3)
+  shadowLight = new THREE.DirectionalLight(0xffffff, 0.1)
 
   // Set the direction of the light
-  shadowLight.position.set(150, 350, 150)
+  shadowLight.position.set(-150, GROUND_DIAMETER, 150)
 
   // Allow shadow casting
   shadowLight.castShadow = true
@@ -126,7 +111,7 @@ function createLights () {
   shadowLight.shadow.camera.left = -1000
   shadowLight.shadow.camera.right = 1000
   shadowLight.shadow.camera.top = 1000
-  shadowLight.shadow.camera.bottom = -1000
+  shadowLight.shadow.camera.bottom = -500
   shadowLight.shadow.camera.near = -1000
   shadowLight.shadow.camera.far = 1000
   // debug light
@@ -138,7 +123,7 @@ function createLights () {
   shadowLight.shadow.mapSize.height = 2048
 
   // an ambient light modifies the global color of a scene and makes the shadows softer
-  ambientLight = new THREE.AmbientLight(0xd8bae4, 0.6)
+  ambientLight = new THREE.AmbientLight(0xe8caf4, 0.7)
   // ambientLight = new THREE.AmbientLight(0xaae8f7, 1)
   scene.add(ambientLight)
 
@@ -173,8 +158,8 @@ function createPlane () {
   scene.add(airplane.mesh)
 }
 
-function updateController(controller, id) {
-  controller.update();
+function updateController (controller, id) {
+  controller.update()
   if (controller.visible) {
     // here we are converting the Vive controller position
     // to a normalized value varying between -1 and 1;
@@ -187,7 +172,6 @@ function updateController(controller, id) {
 }
 
 function loop (t) {
-
   if (viveController) {
     // UPDATE CONTROLLER
     updateController(viveController, 0)
@@ -242,7 +226,6 @@ function loop (t) {
   // Render the scene through the manager.
   manager.render(scene, camera, t)
 
-
   // call the loop function again
   window.requestAnimationFrame(loop)
 }
@@ -290,8 +273,8 @@ function updatePlane () {
   // how fast are we changing compass heading
   turnSpeed = rollAngle * planeAcceleration * -1
 
-  // current compass heading
-  planeDirection += turnSpeed
+  // keep track of current compass heading
+  compassHeading += turnSpeed
 }
 
 function normalize (v, vmin, vmax, tmin, tmax) {
@@ -317,7 +300,6 @@ function handleMouseMove (event) {
   mousePos = {x: tx, y: ty, isInteractive: true}
 }
 
-
 function handleMouseDown () {
   mouseDragging = true
 }
@@ -325,7 +307,6 @@ function handleMouseDown () {
 function handleMouseUp () {
   mouseDragging = false
 }
-
 
 function init () {
   // set up the scene, the camera and the renderer
@@ -347,8 +328,6 @@ function init () {
 
   // // Apply VR headset positional data to camera.
   vrcontrols = new THREE.VRControls(camera)
-  // vrcontrols.standing = true
-  // vrcontrols.userHeight = 172
 
   // Apply VR stereo rendering to renderer.
   effect = new THREE.VREffect(renderer)
@@ -364,26 +343,27 @@ function init () {
   // The dolly has to be a PerspectiveCamera, as opposed
   // to a simple Object3D, since that's what
   // OrbitControls expects.
-  dollyCam = new THREE.PerspectiveCamera();
+  dollyCam = new THREE.PerspectiveCamera()
   dollyCam.position.y = GROUND_DIAMETER + planeStartY * 2
   dollyCam.position.z = cameraStartZ
-  dollyCam.add(camera);
-  scene.add(dollyCam);
+  dollyCam.add(camera)
+  scene.add(dollyCam)
 
   // VIVE CONTROLLER
   if (navigator.getGamepads) {
-    viveController = new THREE.ViveController( 0 );
-    viveController.standingMatrix = vrcontrols.getStandingMatrix();
-    scene.add( viveController );
+    viveController = new THREE.ViveController(0)
+    viveController.standingMatrix = vrcontrols.getStandingMatrix()
+    scene.add(viveController)
   }
+
   // start a loop that will update the objects' positions
   // and render the scene on each frame
   loop()
 
   //add the listener
-  document.addEventListener('mousemove', handleMouseMove, false);
-  document.addEventListener('mousedown', handleMouseDown, false);
-  document.addEventListener('mouseup', handleMouseUp, false);
+  document.addEventListener('mousemove', handleMouseMove, false)
+  document.addEventListener('mousedown', handleMouseDown, false)
+  document.addEventListener('mouseup', handleMouseUp, false)
 }
 
 window.addEventListener('load', init, false)
