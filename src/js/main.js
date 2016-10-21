@@ -73,10 +73,6 @@ function createScene () {
   // container we created in the HTML
   container = document.getElementById('world')
   container.appendChild(renderer.domElement)
-
-  // Listen to the screen: if the user resizes it
-  // we have to update the camera and the renderer size
-  window.addEventListener('resize', handleWindowResize, false)
 }
 
 function handleWindowResize () {
@@ -163,10 +159,10 @@ function updateController (controller, id) {
   if (controller.visible) {
     // here we are converting the Vive controller position
     // to a normalized value varying between -1 and 1;
-    // var tx = controller.rotation.z
-    // var ty = controller.rotation.x
-    var tx = controller.position.x / 0.5
-    var ty = controller.position.y / 0.5
+    var ty = controller.rotation.x / 0.5
+    // var ty = controller.position.y / 0.5
+    // var tx = controller.position.x / 0.5
+    var tx = (controller.rotation.z + controller.rotation.y) / 0.5 *  -1
     mousePos = {x: tx, y: ty, isInteractive: true}
   }
 }
@@ -216,8 +212,8 @@ function loop (t) {
     const {x, y, z} = airplane.mesh.position
     dollyCam.position.x = x
     dollyCam.lookAt(dollyCam.position)
-    dollyCam.position.y = y + 10
-    dollyCam.position.z = z + 5
+    dollyCam.position.y = y + 12
+    dollyCam.position.z = z + 1
   }
 
   // render the scene
@@ -360,7 +356,11 @@ function init () {
   // and render the scene on each frame
   loop()
 
-  //add the listener
+  // Listen to the screen: if the user resizes it
+  // we have to update the camera and the renderer size
+  window.addEventListener('resize', handleWindowResize, false)
+
+  // add the listener
   document.addEventListener('mousemove', handleMouseMove, false)
   document.addEventListener('mousedown', handleMouseDown, false)
   document.addEventListener('mouseup', handleMouseUp, false)
