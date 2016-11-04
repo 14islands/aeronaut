@@ -115,8 +115,8 @@ function createLights () {
 
   // define the resolution of the shadow the higher the better,
   // but also the more expensive and less performant
-  shadowLight.shadow.mapSize.width = 2048
-  shadowLight.shadow.mapSize.height = 2048
+  shadowLight.shadow.mapSize.width = 1024
+  shadowLight.shadow.mapSize.height = 1024
 
   // an ambient light modifies the global color of a scene and makes the shadows softer
   ambientLight = new THREE.AmbientLight(0xe8caf4, 0.7)
@@ -203,21 +203,17 @@ function loop (t) {
   world.rotation.setFromRotationMatrix(world.matrix)
 
   // position camera inside cockpit
-  // focus camera on airplane if not in VR mode
   if (manager.mode === Modes.NORMAL || manager.mode === Modes.UNKNOWN) {
-    // camera position is set by controller handler
+    // focus camera on airplane if not in VR mode
     dollyCam.lookAt(airplane.mesh.position)
-  // Cardboard or VR mode
   } else {
+    // Cardboard or VR mode
     const {x, y, z} = airplane.mesh.position
     dollyCam.position.x = x
     dollyCam.lookAt(dollyCam.position)
     dollyCam.position.y = y + 12
     dollyCam.position.z = z + 1
   }
-
-  // render the scene
-  // renderer.render(scene, camera)
 
   // Render the scene through the manager.
   manager.render(scene, camera, t)
@@ -352,6 +348,11 @@ function init () {
     scene.add(viveController)
   }
 
+  // mouse events
+  document.addEventListener('mousemove', handleMouseMove, false)
+  document.addEventListener('mousedown', handleMouseDown, false)
+  document.addEventListener('mouseup', handleMouseUp, false)
+
   // start a loop that will update the objects' positions
   // and render the scene on each frame
   loop()
@@ -359,11 +360,6 @@ function init () {
   // Listen to the screen: if the user resizes it
   // we have to update the camera and the renderer size
   window.addEventListener('resize', handleWindowResize, false)
-
-  // add the listener
-  document.addEventListener('mousemove', handleMouseMove, false)
-  document.addEventListener('mousedown', handleMouseDown, false)
-  document.addEventListener('mouseup', handleMouseUp, false)
 }
 
 window.addEventListener('load', init, false)
