@@ -12,7 +12,7 @@ import WebVRManager, {Modes} from 'webvr-boilerplate'
 
 let scene,
   camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-  renderer, container, sea, controls, vrcontrols, sky, airplane, effect, manager, dollyCam, viveController, world
+  renderer, container, sea, vrcontrols, sky, airplane, effect, manager, dollyCam, viveController, world
 
 let turnSpeed = 0
 let compassHeading = 0
@@ -62,6 +62,8 @@ function createScene () {
     antialias: true
   })
 
+  renderer.setClearColor(0xc6cceb, 1)
+
   // Define the size of the renderer in this case,
   // it will fill the entire screen
   renderer.setSize(WIDTH, HEIGHT)
@@ -73,6 +75,22 @@ function createScene () {
   // container we created in the HTML
   container = document.getElementById('world')
   container.appendChild(renderer.domElement)
+
+  // var geometry = new THREE.SphereGeometry(3000, 60, 40);
+  // var uniforms = {
+  //   texture: { type: 't', value: this.assets.textures.skydome }
+  // };
+
+  // var material = new THREE.ShaderMaterial( {
+  //   uniforms:       uniforms,
+  //   vertexShader:   skysphereVertexShader,
+  //   fragmentShader: skysphereFragmentShader
+  // });
+
+  // var skyBox = new THREE.Mesh(geometry, material);
+  // skyBox.scale.set(-1, 1, 1);
+  // skyBox.rotation.order = 'XZY';
+  // skyBox.renderDepth = 1000.0;
 }
 
 function handleWindowResize () {
@@ -162,7 +180,7 @@ function updateController (controller, id) {
     var ty = controller.rotation.x / 0.5
     // var ty = controller.position.y / 0.5
     // var tx = controller.position.x / 0.5
-    var tx = (controller.rotation.z + controller.rotation.y) / 0.5 *  -1
+    var tx = (controller.rotation.z + controller.rotation.y) / 0.5 * -1
     mousePos = {x: tx, y: ty, isInteractive: true}
   }
 }
@@ -173,9 +191,6 @@ function loop (t) {
     updateController(viveController, 0)
   }
 
-  if (controls) {
-    controls.update(clock.getDelta())
-  }
   if (vrcontrols) {
     vrcontrols.update(clock.getDelta())
   }
@@ -217,9 +232,11 @@ function loop (t) {
 
   // Render the scene through the manager.
   manager.render(scene, camera, t)
+  // effect.render(scene, camera)
 
   // call the loop function again
-  window.requestAnimationFrame(loop)
+  // window.requestAnimationFrame(loop)
+  vrDisplay.requestAnimationFrame(loop)
 }
 
 function updatePlane () {
@@ -320,6 +337,7 @@ function init () {
 
   // // Apply VR headset positional data to camera.
   vrcontrols = new THREE.VRControls(camera)
+  vrcontrols.standing = true
 
   // Apply VR stereo rendering to renderer.
   effect = new THREE.VREffect(renderer)
@@ -341,6 +359,10 @@ function init () {
   dollyCam.add(camera)
   scene.add(dollyCam)
 
+  // For high end VR devices like Vive and Oculus, take into account the stage
+  // parameters provided.
+  setupStage()
+
   // VIVE CONTROLLER
   if (navigator.getGamepads) {
     viveController = new THREE.ViveController(0)
@@ -353,13 +375,35 @@ function init () {
   document.addEventListener('mousedown', handleMouseDown, false)
   document.addEventListener('mouseup', handleMouseUp, false)
 
-  // start a loop that will update the objects' positions
-  // and render the scene on each frame
-  loop()
-
   // Listen to the screen: if the user resizes it
   // we have to update the camera and the renderer size
   window.addEventListener('resize', handleWindowResize, false)
+  window.addEventListener('vrdisplaypresentchange', handleWindowResize, true)
 }
+
+var vrDisplay
+
+// Get the HMD, and if we're dealing with something that specifies
+// stageParameters, rearrange the scene.
+function setupStage () {
+  navigator.getVRDisplays().then((displays) => {
+    if (displays.length > 0) {
+      vrDisplay = displays[0]
+      if (vrDisplay.stageParameters) {
+        // setStageDimensions(vrDisplay.stageParameters);
+      }
+      // start a loop that will update the objects' positions
+      // and render the scene on each frame
+      vrDisplay.requestAnimationFrame(loop)
+    }
+  })
+}
+
+// function setStageDimensions(stage) {
+  // get the room size
+  // stage.sizeX, stage.sizeZ);
+  // get user height
+  // controls.userHeight
+// }
 
 window.addEventListener('load', init, false)
