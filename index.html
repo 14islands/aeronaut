@@ -5,7 +5,7 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 
-		<title>14islands Aeronaut</title>
+		<title>14islands Aeronaut - WebVR experience</title>
 
 		<meta name="description" content="Low polygon Aeronaut experience for Vive or Cardboard using webVR and THREE.js - a 14islands hack" />
 		<meta name="keywords" content="three.js, webgl, webvr, vive, cardboard, oculus rift, 3d, animation, airplane, web development, javascript" />
@@ -20,22 +20,22 @@
        */
       WebVRConfig = {
         // Forces availability of VR mode.
-        FORCE_ENABLE_VR: false, // Default: false.
+        // FORCE_ENABLE_VR: false, // Default: false.
         // Complementary filter coefficient. 0 for accelerometer, 1 for gyro.
-        K_FILTER: 0.98, // Default: 0.98.
+        // K_FILTER: 0.98, // Default: 0.98.
         // How far into the future to predict during fast motion.
-        PREDICTION_TIME_S: 0.040, // Default: 0.040 (in seconds).
+        // PREDICTION_TIME_S: 0.040, // Default: 0.040 (in seconds).
         // Flag to disable touch panner. In case you have your own touch controls
-        TOUCH_PANNER_DISABLED: true, // Default: false.
+        // TOUCH_PANNER_DISABLED: true, // Default: false.
         // Enable yaw panning only, disabling roll and pitch. This can be useful for
         // panoramas with nothing interesting above or below.
-        YAW_ONLY: false, // Default: false.
+        // YAW_ONLY: false, // Default: false.
         // Enable the deprecated version of the API (navigator.getVRDevices).
-        ENABLE_DEPRECATED_API: false, // Default: false.
+        // ENABLE_DEPRECATED_API: false, // Default: false.
         // Scales the recommended buffer size reported by WebVR, which can improve
         // performance. Making this very small can lower the effective resolution of
         // your scene.
-        BUFFER_SCALE: 0.5, // default: 1.0
+        BUFFER_SCALE: 1, // default: 1.0
         // Allow VRDisplay.submitFrame to change gl bindings, which is more
         // efficient if the application code will re-bind it's resources on the
         // next frame anyway.
@@ -43,7 +43,7 @@
         // gl.ARRAY_BUFFER_BINDING, gl.ELEMENT_ARRAY_BUFFER_BINDING,
         // and gl.TEXTURE_BINDING_2D for texture unit 0
         // Warning: enabling this might lead to rendering issues.
-        DIRTY_SUBMIT_FRAME_BINDINGS: false // default: false
+        // DIRTY_SUBMIT_FRAME_BINDINGS: false // default: false
       }
     </script>
 
@@ -58,6 +58,25 @@
 
     <!-- Aeronaut -->
 		<script type="text/javascript" src="build/bundle.min.js"/></script>
+
+		<!--
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec2 vUV;
+      void main() {
+        vUV = uv;
+        vec4 pos = vec4(position, 1.0);
+        gl_Position = projectionMatrix * modelViewMatrix * pos;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-vertex">
+      uniform sampler2D texture;
+      varying vec2 vUV;
+      void main() {
+        vec4 sample = texture2D(texture, vUV);
+        gl_FragColor = vec4(sample.xyz, sample.w);
+      }
+    </script>
+		-->
 
 	</head>
 	<body>
