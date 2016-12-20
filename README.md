@@ -13,4 +13,5 @@ More: https://14islands.com/blog/2016/11/04/webvr-with-threejs/
 # Run
 
 `mkdir build`
+
 `npm start`
